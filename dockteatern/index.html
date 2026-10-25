@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Puppet Theater · Plinka – a marionette theater for children</title>
+<meta name="description" content="A puppet theater for iPhone and iPad. Children pull real strings, do all the voices and record the show. No ads, no subscription, works offline.">
+<meta name="apple-itunes-app" content="app-id=6800863217">
+<meta name="theme-color" content="#6b1627">
+<link rel="canonical" href="https://lazy-coding-ab.github.io/plinka/dockteatern/">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Puppet Theater · Plinka">
+<meta property="og:description" content="Real strings, a child's voice. A puppet theater for iPhone and iPad, with no ads and no subscription.">
+<meta property="og:image" content="https://lazy-coding-ab.github.io/plinka/dockteatern/og.jpg">
+<meta property="og:url" content="https://lazy-coding-ab.github.io/plinka/dockteatern/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // Språket väljs före första målningen: ?lang=, sedan förra valet, sedan webbläsaren.
+  (function () {
+    var l;
+    try { l = new URLSearchParams(location.search).get("lang") || localStorage.getItem("lang"); } catch (e) {}
+    if (l !== "sv" && l !== "en") l = /^sv\b/i.test(navigator.language || "") ? "sv" : "en";
+    document.documentElement.lang = l;
+    document.documentElement.setAttribute("data-ui", l);
+  })();
+</script>
+<style>
+  @font-face {
+    font-family: "Nunito";
+    src: url(fonts/nunito.woff2) format("woff2");
+    font-weight: 500 900;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
+  :root {
+    color-scheme: light dark;
+    --velvet: #6b1627;
+    --velvet-deep: #420c18;
+    --curtain: #c42e3d;
+    --curtain-dark: #8e1b29;
+    --gold: #f2b634;
+    --gold-deep: #c98a1c;
+    --bulb-off: #d39b35;
+    --bulb-on: #fff4c4;
+    --sky: #eaf4f9;
+    --ink: #2a1631;
+    --ink-body: #4a3550;
+    --line: rgba(42, 22, 49, .14);
+    --paper: #fff;
+    --round: ui-rounded, "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --sky: #17142b;
+      --ink: #f6eef7;
+      --ink-body: #c9b9d0;
+      --line: rgba(255, 255, 255, .14);
+      --paper: #241f3d;
+    }
+  }
+
+  :root[data-ui="sv"] body [lang="en"],
+  :root:not([data-ui="sv"]) body [lang="sv"] { display: none !important; }
+  /* Utan JavaScript: engelska, videons egna kontroller, och inga knappar som inte gör något. */
+  :root:not([data-ui]) .langs, :root:not([data-ui]) .pp { display: none; }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--sky);
+    color: var(--ink);
+    font: 500 1.0625rem/1.6 var(--round);
+    overflow-x: clip;
+  }
+  img, video { display: block; max-width: 100%; height: auto; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
+  h1, h2, h3 { font-weight: 900; margin: 0; text-wrap: balance; }
+  p { margin: 0 0 1em; text-wrap: pretty; }
+
+  /* Sammetsridån: veck i sidled över en mörkare kant. */
+  .velvet {
+    color: #fff7e8;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.24) 0, rgba(0,0,0,0) 24px,
+        rgba(255,255,255,.07) 46px, rgba(0,0,0,0) 68px, rgba(0,0,0,.24) 92px),
+      radial-gradient(130% 90% at 50% 0%, #8c1f35 0%, var(--velvet) 50%, var(--velvet-deep) 100%);
+  }
+  .valance {
+    height: 52px;
+    background:
+      radial-gradient(circle at 50% 0, var(--curtain) 0 33px, var(--gold) 33.5px 37px, transparent 37.5px)
+        center 14px / 76px 38px repeat-x,
+      linear-gradient(var(--curtain-dark) 0 11px, var(--gold) 11px 14px, transparent 14px);
+    filter: drop-shadow(0 6px 6px rgba(30, 0, 10, .35));
+  }
+
+  /* flow-root: scenens negativa marginal ska hänga ut under ridån, inte kollapsa genom den. */
+  .hero { display: flow-root; padding: 0 16px; text-align: center; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    max-width: 1120px; margin: 4px auto 0; text-align: left;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1rem; line-height: 1.2; }
+  .brand img { width: 44px; height: 44px; border-radius: 11px; box-shadow: 0 0 0 2px rgba(255, 247, 232, .25); }
+  .langs { display: flex; padding: 3px; border-radius: 999px; background: rgba(0, 0, 0, .28); }
+  .langs button {
+    font: inherit; font-size: .875rem; font-weight: 800; color: rgba(255, 247, 232, .8);
+    background: none; border: 0; border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  }
+  .langs button[aria-pressed="true"] { background: var(--gold); color: var(--velvet-deep); }
+
+  .hero h1 {
+    margin: clamp(28px, 5vw, 56px) auto 0;
+    font-size: clamp(2.5rem, 1.4rem + 4.6vw, 4.75rem);
+    line-height: 1.02;
+    letter-spacing: -.015em;
+    text-shadow: 0 3px 0 rgba(40, 0, 12, .35);
+  }
+  .lede {
+    max-width: 32em; margin: 18px auto 0;
+    font-size: clamp(1.0625rem, 1rem + .4vw, 1.25rem); color: rgba(255, 247, 232, .88);
+  }
+  .get { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 26px; }
+  .get a { display: inline-block; border-radius: 10px; }
+  .get img { height: 54px; width: auto; }
+  .get small { font-size: .9375rem; color: rgba(255, 247, 232, .72); }
+
+  /* Scenen: förhandsvideon i guldramen med lamporna från ikonen. */
+  .stage {
+    --pad: clamp(14px, 2.3vw, 22px);
+    --overlap: clamp(56px, 13vw, 190px);
+    position: relative;
+    width: min(100%, 880px);
+    margin: clamp(32px, 5vw, 52px) auto calc(-1 * var(--overlap));
+    padding: var(--pad);
+    border-radius: calc(var(--pad) + 10px);
+    background: linear-gradient(var(--gold), var(--gold-deep));
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .35), 0 34px 60px -20px rgba(30, 0, 10, .6);
+  }
+  .stage video {
+    width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+    border-radius: 10px; background: #1f2552;
+    box-shadow: 0 0 0 3px rgba(120, 70, 10, .45);
+  }
+  .bulb {
+    position: absolute;
+    left: calc(var(--pad) / 2 + (100% - var(--pad)) * var(--x));
+    top: calc(var(--pad) / 2 + (100% - var(--pad)) * var(--y));
+    width: calc(var(--pad) * .5); height: calc(var(--pad) * .5);
+    translate: -50% -50%; border-radius: 50%;
+    background: var(--bulb-off);
+    box-shadow: inset 0 -1px 0 rgba(90, 50, 0, .35);
+  }
+  .stage.lit .bulb { animation: light .4s ease-out forwards; animation-delay: calc(var(--n) * 18ms); }
+  @keyframes light {
+    to { background: var(--bulb-on); box-shadow: 0 0 7px 2px rgba(255, 224, 120, .8); }
+  }
+  .pp {
+    position: absolute; right: calc(var(--pad) + 12px); bottom: calc(var(--pad) + 12px);
+    width: 44px; height: 44px; border: 0; border-radius: 50%; cursor: pointer;
+    display: grid; place-items: center;
+    background: rgba(20, 8, 24, .55); color: #fff;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .pp svg { width: 18px; height: 18px; fill: currentColor; }
+  .pp[data-state="playing"] .i-play, .pp[data-state="paused"] .i-pause { display: none; }
+
+  /* Avsnitten */
+  main { padding-top: calc(clamp(56px, 13vw, 190px) + clamp(40px, 6vw, 80px)); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  .feature {
+    display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(40px, 6vw, 88px); align-items: center;
+    padding-block: clamp(48px, 7vw, 104px);
+  }
+  .feature.flip .shot-wrap { order: 2; }
+  .feature h2, .section-head h2 {
+    font-size: clamp(1.9rem, 1.25rem + 2.4vw, 3rem); line-height: 1.06; letter-spacing: -.01em;
+    margin-bottom: 18px;
+  }
+  .feature p, .section-head p { color: var(--ink-body); max-width: 31em; }
+
+  .shot-wrap { position: relative; }
+  .slab {
+    position: absolute; inset: 8% -5% -7% 7%; border-radius: 32px;
+    background: linear-gradient(var(--s1), var(--s2));
+  }
+  .flip .slab { inset: 8% 7% -7% -5%; }
+  .shot {
+    position: relative; width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+    border-radius: 22px; background: #cfe3ec;
+    box-shadow: 0 22px 40px -22px rgba(42, 22, 49, .55);
+  }
+  .sticker {
+    position: absolute; display: inline-flex; align-items: center; gap: 10px;
+    padding: 6px 18px 6px 6px; border-radius: 999px;
+    background: #fff; color: var(--sink);
+    font-weight: 900; font-size: clamp(.9375rem, .8rem + .45vw, 1.125rem); line-height: 1.15;
+    white-space: nowrap; rotate: var(--tilt);
+    box-shadow: 0 3px 0 rgba(42, 22, 49, .12), 0 14px 26px -10px rgba(42, 22, 49, .45);
+  }
+  .sticker img { width: 44px; height: 44px; object-fit: contain; }
+  .sticker.a { --tilt: -3deg; top: 9%; right: -18px; }
+  .sticker.b { --tilt: 3deg; bottom: 7%; left: -18px; }
+
+  .rail   { --s1: #76c470; --s2: #3a924c; --sink: #287d3c; }
+  .party  { --s1: #f56a60; --s2: #c43042; --sink: #aa2634; }
+  .editor { --s1: #a87ae8; --s2: #6e46be; --sink: #643caf; }
+  .hub    { --s1: #5cbaec; --s2: #287cc6; --sink: #1e69af; }
+
+  .places {
+    list-style: none; margin: 0; padding: 0 0 clamp(48px, 7vw, 104px);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(16px, 2.4vw, 28px);
+  }
+  .places img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 16px; background: #cfe3ec; }
+  .places span { display: block; margin-top: 8px; font-weight: 800; }
+
+  /* Biljetten: vad som är gratis och vad köpet ger. */
+  .section-head { max-width: 40rem; margin: 0 auto 32px; text-align: center; }
+  .section-head p { margin-inline: auto; }
+  .ticket {
+    --notch: 16px;
+    display: grid; grid-template-columns: 1fr 1fr; max-width: 54rem; margin: 0 auto;
+    background: var(--paper); border-radius: 22px;
+    box-shadow: 0 22px 44px -26px rgba(42, 22, 49, .5);
+    -webkit-mask: radial-gradient(circle var(--notch) at 50% 0, transparent 98%, #000) top / 100% 51% no-repeat,
+                  radial-gradient(circle var(--notch) at 50% 100%, transparent 98%, #000) bottom / 100% 51% no-repeat;
+            mask: radial-gradient(circle var(--notch) at 50% 0, transparent 98%, #000) top / 100% 51% no-repeat,
+                  radial-gradient(circle var(--notch) at 50% 100%, transparent 98%, #000) bottom / 100% 51% no-repeat;
+  }
+  .ticket > div { padding: clamp(24px, 4vw, 40px); }
+  .ticket > div + div { border-left: 2px dashed var(--line); }
+  .ticket h3 { font-size: 1.375rem; margin-bottom: 12px; }
+  .ticket ul { margin: 0; padding: 0; list-style: none; }
+  .ticket li { padding: 7px 0 7px 30px; position: relative; color: var(--ink-body); }
+  .ticket li::before {
+    content: ""; position: absolute; left: 0; top: .72em; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--gold); box-shadow: inset 0 -2px 0 var(--gold-deep);
+  }
+  .ticket .note { margin: 14px 0 0; font-size: .9375rem; color: var(--ink-body); }
+  .ticket-section { padding-block: clamp(48px, 7vw, 104px); }
+
+  .adults { padding-block: clamp(48px, 7vw, 104px) clamp(64px, 9vw, 128px); }
+  .adults dl {
+    max-width: 54rem; margin: 0 auto;
+    display: grid; grid-template-columns: minmax(12rem, 17rem) 1fr; column-gap: 32px;
+  }
+  .adults dt, .adults dd { padding: 18px 0; border-top: 1px solid var(--line); margin: 0; }
+  .adults dt { font-weight: 900; font-size: 1.1875rem; line-height: 1.3; }
+  .adults dd { color: var(--ink-body); }
+
+  .finale { text-align: center; padding: 0 16px; }
+  .finale h2 { margin-top: clamp(40px, 6vw, 72px); font-size: clamp(1.9rem, 1.25rem + 2.4vw, 3rem); line-height: 1.06; }
+  .finale .get { margin-top: 22px; }
+  footer {
+    max-width: 1120px; margin: clamp(48px, 7vw, 80px) auto 0; padding: 24px 0 calc(28px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 247, 232, .18);
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 28px;
+    font-size: .9375rem; color: rgba(255, 247, 232, .75); text-align: left;
+  }
+  footer nav { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+  footer a { color: #fff7e8; text-underline-offset: 3px; }
+  footer p { margin: 0; }
+
+  @media (max-width: 820px) {
+    .feature, .feature.flip { grid-template-columns: 1fr; }
+    .feature.flip .shot-wrap { order: 0; }
+    .slab, .flip .slab { inset: 7% -3% -6% 4%; }
+    .sticker.a { right: 4px; }
+    .sticker.b { left: 4px; }
+    .places { grid-template-columns: repeat(2, 1fr); }
+    .ticket { grid-template-columns: 1fr; -webkit-mask: none; mask: none; }
+    .ticket > div + div { border-left: 0; border-top: 2px dashed var(--line); }
+    .adults dl { grid-template-columns: 1fr; }
+    .adults dd { border-top: 0; padding-top: 0; }
+  }
+  @media (max-width: 420px) {
+    .brand span { font-size: .9375rem; }
+    .sticker { padding: 4px 14px 4px 4px; gap: 8px; }
+    .sticker img { width: 34px; height: 34px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stage.lit .bulb { animation: none; background: var(--bulb-on); box-shadow: 0 0 7px 2px rgba(255, 224, 120, .8); }
+  }
+</style>
+</head>
+<body>
+
+<header class="velvet hero">
+  <div class="valance" aria-hidden="true"></div>
+  <div class="topbar">
+    <div class="brand">
+      <img src="media/app-icon.png" alt="" width="44" height="44">
+      <span><span lang="sv">Dockteatern · Plinka</span><span lang="en">Puppet Theater · Plinka</span></span>
+    </div>
+    <div class="langs" role="group" aria-label="Språk / Language">
+      <button type="button" data-set="sv" lang="sv-SE">Svenska</button>
+      <button type="button" data-set="en" lang="en-US">English</button>
+    </div>
+  </div>
+
+  <h1><span lang="sv">Din egen dockteater</span><span lang="en">Your own puppet theater</span></h1>
+  <p class="lede">
+    <span lang="sv">Barnet drar i trådarna, gör alla röster och spelar in föreställningen. Sen spelar teatern upp alltihop.</span>
+    <span lang="en">Your child pulls the strings, does all the voices and records the show. Then the theater plays it all back.</span>
+  </p>
+  <div class="get">
+    <a href="https://apps.apple.com/app/id6800863217">
+      <img lang="sv" src="media/badge-sv.svg" alt="Hämta i App Store" width="162" height="54">
+      <img lang="en" src="media/badge-en.svg" alt="Download on the App Store" width="162" height="54">
+    </a>
+    <small><span lang="sv">Gratis att ladda ner, för iPhone och iPad.</span><span lang="en">Free to download, for iPhone and iPad.</span></small>
+  </div>
+
+  <div class="stage">
+    <video muted loop playsinline controls preload="metadata" poster="media/hero.jpg" width="960" height="720"
+           aria-label="Puppets on the stage, on the seabed, on the farm and in the spaceship">
+      <source src="media/hero.mp4" type="video/mp4">
+    </video>
+    <button type="button" class="pp" data-state="paused" aria-label="Play video">
+      <svg class="i-play" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 2.2v13.6c0 .8.9 1.3 1.6.8l10-6.8c.6-.4.6-1.2 0-1.6l-10-6.8C4.9.9 4 1.4 4 2.2z"/></svg>
+      <svg class="i-pause" viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="2" width="4" height="14" rx="1.2"/><rect x="11" y="2" width="4" height="14" rx="1.2"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="wrap feature rail">
+    <div class="shot-wrap">
+      <div class="slab" aria-hidden="true"></div>
+      <img class="shot" lang="sv" src="media/rail-sv.webp" loading="lazy" width="1280" height="960"
+           alt="Tre marionetter i trådar på teaterscenen, och fler dockor som väntar i Dockolådan ovanför.">
+      <img class="shot" lang="en" src="media/rail-en.webp" loading="lazy" width="1280" height="960"
+           alt="Three marionettes on strings on the theater stage, with more puppets waiting in the Puppet Box above.">
+      <span class="sticker a"><img src="media/icons/UiTheatre.png" alt=""><span lang="sv">Dra ner en docka</span><span lang="en">Pull a puppet down</span></span>
+      <span class="sticker b"><img src="media/icons/UiPuppetBox.png" alt=""><span lang="sv">26 marionetter</span><span lang="en">26 marionettes</span></span>
+    </div>
+    <div>
+      <h2><span lang="sv">Riktiga trådar</span><span lang="en">Real strings</span></h2>
+      <p lang="sv">Dockorna hänger i trådar, och varje led har sin egen fjäder, precis som på en marionett av trä. Dra i en arm så svarar hela kroppen. Lyft dockan i foten så hänger den upp och ner, och varje figur tar det på sitt eget sätt.</p>
+      <p lang="en">The puppets hang from strings, and every joint has its own spring, the way a wooden marionette does. Pull an arm and the whole body answers. Lift a puppet by one foot and it hangs upside down, and every character takes that differently.</p>
+      <p lang="sv">Håll fingret still på en docka så dyker en ring med hyss upp: skratta, gråta, sova, nysa, buga, slå volt. Scenen följer varje finger, så två barn kan hålla i var sin docka.</p>
+      <p lang="en">Hold a finger still on a puppet and a ring of tricks opens: laugh, cry, sleep, sneeze, bow, turn a somersault. The stage tracks every finger, so two children can each hold a puppet.</p>
+    </div>
+  </section>
+
+  <section class="wrap feature flip party">
+    <div class="shot-wrap">
+      <div class="slab" aria-hidden="true"></div>
+      <img class="shot" lang="sv" src="media/party-sv.webp" loading="lazy" width="1280" height="960"
+           alt="Gycklaren och ballerinan dansar framför slottet medan konfetti regnar över scenen.">
+      <img class="shot" lang="en" src="media/party-en.webp" loading="lazy" width="1280" height="960"
+           alt="The jester and the ballerina dance in front of the castle while confetti rains over the stage.">
+      <span class="sticker a"><img src="media/icons/UiVoiceOn.png" alt=""><span lang="sv">Spela in med din röst</span><span lang="en">Record with your voice</span></span>
+      <span class="sticker b"><img src="media/icons/VoiceBear.png" alt=""><span lang="sv">Röst som björn eller robot</span><span lang="en">Sound like a bear or a robot</span></span>
+    </div>
+    <div>
+      <h2><span lang="sv">Spela in en föreställning</span><span lang="en">Record a show</span></h2>
+      <p lang="sv">Barnet trycker på Spela in, spelar med dockorna och berättar samtidigt. Rörelser, ljud och röst sparas ihop. Vid uppspelningen ställer teatern tillbaka rätt dockor i rätt värld och kör alltihop igen, och när det är slut jublar publiken.</p>
+      <p lang="en">Your child taps Record, plays with the puppets and tells the story at the same time. Movement, sounds and voice are saved together. On playback the theater puts the right puppets back in the right world and runs it all again, and at the end the audience cheers.</p>
+      <p lang="sv">Rösten kan låta pipig, mörk, spöklik eller som en robot. Sagokort ger uppslag när fantasin behöver en knuff: ”Draken har fått hicka och kan inte sluta …”</p>
+      <p lang="en">The voice can come out squeaky, deep, ghostly or like a robot. Story cards offer an idea when imagination stalls: “The dragon has hiccups and can’t stop…”</p>
+    </div>
+  </section>
+
+  <section class="wrap feature editor">
+    <div class="shot-wrap">
+      <div class="slab" aria-hidden="true"></div>
+      <img class="shot" lang="sv" src="media/editor-sv.webp" loading="lazy" width="1280" height="960"
+           alt="Dockverkstan: en grön drakdocka med vingar i trådar, bredvid valen för huvud, kroppsform och hudton.">
+      <img class="shot" lang="en" src="media/editor-en.webp" loading="lazy" width="1280" height="960"
+           alt="The puppet workshop: a green dragon puppet with wings on strings, next to the choices for head, body shape and skin tone.">
+      <span class="sticker a"><img src="media/icons/WorkshopHat.png" alt=""><span lang="sv">Hattar, vingar och frisyrer</span><span lang="en">Hats, wings and hairdos</span></span>
+      <span class="sticker b"><img src="media/icons/WorkshopBody.png" alt=""><span lang="sv">133 delar att välja</span><span lang="en">133 parts to choose from</span></span>
+    </div>
+    <div>
+      <h2><span lang="sv">Bygg din egen docka</span><span lang="en">Build your own puppet</span></h2>
+      <p lang="sv">I dockverkstan väljer barnet huvud, kroppsform, kläder, hatt, frisyr, mönster, något i handen och något på ryggen, och blandar delarna fritt. Bland tillbehören finns hörapparat, käpp, rullstol och benprotes, och hudtonen går att välja.</p>
+      <p lang="en">In the puppet workshop your child picks a head, body shape, clothes, hat, hairstyle, pattern, something in the hand and something on the back, and mixes the parts any way they like. The extras include a hearing aid, a cane, a wheelchair and a prosthetic leg, and the skin tone is up to them.</p>
+      <p lang="sv">Den färdiga dockan får ett namn, flyttar in i Dockolådan och kan spela huvudrollen samma kväll.</p>
+      <p lang="en">The finished puppet gets a name, moves into the Puppet Box and can play the lead that same evening.</p>
+    </div>
+  </section>
+
+  <section class="wrap feature flip hub">
+    <div class="shot-wrap">
+      <div class="slab" aria-hidden="true"></div>
+      <img class="shot" lang="sv" src="media/hub-sv.webp" loading="lazy" width="1280" height="960"
+           alt="Kartan med dockteatern, Sagoängen, Havsbotten och vägarna mellan dem.">
+      <img class="shot" lang="en" src="media/hub-en.webp" loading="lazy" width="1280" height="960"
+           alt="The map with the puppet theater, the Fairy Meadow, the Seabed and the roads between them.">
+      <span class="sticker a"><img src="media/icons/SignWhale.png" alt=""><span lang="sv">Från havsbotten till månen</span><span lang="en">From the sea floor to the moon</span></span>
+      <span class="sticker b"><img src="media/icons/SignPlanet.png" alt=""><span lang="sv">Flyg med rymdskeppet</span><span lang="en">Fly the spaceship</span></span>
+    </div>
+    <div>
+      <h2><span lang="sv">Res till 14 världar</span><span lang="en">Travel to 14 worlds</span></h2>
+      <p lang="sv">Kartan tar dockorna från teatern till bondgården, havsbotten, månen, lavaön, molnriket och ett rymdskepp. Sakerna svarar olika i mörker, i kyla, under vatten och på månen: bollen som hamnar på studsmattan börjar studsa, och nallen som bärs till sängen blir nerbäddad.</p>
+      <p lang="en">The map takes the puppets from the theater to the farm, the seabed, the moon, Lava Island, the Cloud Kingdom and a spaceship. Things answer differently in the dark, in the cold, underwater and on the moon: a ball that lands on the trampoline starts bouncing, and a teddy carried to the bed gets tucked in.</p>
+      <p lang="sv">I världarna finns lekar att upptäcka. Häll upp te ur jättens tekanna, mjölka kon, kläck ett dinoägg på Lavaön eller lek kurragömma på Lekplatsen.</p>
+      <p lang="en">The worlds have games to discover. Pour tea from the giant’s teapot, milk the cow, hatch a dino egg on Lava Island or play hide and seek in the Playground.</p>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <ul class="places">
+      <li><img lang="sv" src="media/crater-sv.webp" loading="lazy" width="720" height="540" alt=""><img lang="en" src="media/crater-en.webp" loading="lazy" width="720" height="540" alt="">
+        <span><span lang="sv">Lavaön</span><span lang="en">Lava Island</span></span></li>
+      <li><img lang="sv" src="media/teacup-sv.webp" loading="lazy" width="720" height="540" alt=""><img lang="en" src="media/teacup-en.webp" loading="lazy" width="720" height="540" alt="">
+        <span><span lang="sv">Jättens kök</span><span lang="en">The Giant’s Kitchen</span></span></li>
+      <li><img lang="sv" src="media/hideseek-sv.webp" loading="lazy" width="720" height="540" alt=""><img lang="en" src="media/hideseek-en.webp" loading="lazy" width="720" height="540" alt="">
+        <span><span lang="sv">Lekplatsen</span><span lang="en">The Playground</span></span></li>
+      <li><img src="media/seabed.webp" loading="lazy" width="720" height="540" alt="">
+        <span><span lang="sv">Havsbotten</span><span lang="en">The Seabed</span></span></li>
+      <li><img src="media/farm.webp" loading="lazy" width="720" height="540" alt="">
+        <span><span lang="sv">Bondgården</span><span lang="en">The Farm</span></span></li>
+      <li><img src="media/spaceship.webp" loading="lazy" width="720" height="540" alt="">
+        <span><span lang="sv">Rymdskeppet</span><span lang="en">The Spaceship</span></span></li>
+    </ul>
+  </div>
+
+  <section class="wrap ticket-section">
+    <div class="section-head">
+      <h2><span lang="sv">Gratis att börja leka</span><span lang="en">Free to start playing</span></h2>
+      <p lang="sv">Appen går att leka med som den är. Ett engångsköp låser upp mer.</p>
+      <p lang="en">The app is playable as it is. A one-time purchase unlocks more.</p>
+    </div>
+    <div class="ticket">
+      <div>
+        <h3><span lang="sv">Gratis</span><span lang="en">Free</span></h3>
+        <ul>
+          <li><span lang="sv">Ett urval av dockor, rekvisita och sagokort</span><span lang="en">A selection of puppets, props and story cards</span></li>
+          <li><span lang="sv">Bondgården</span><span lang="en">The farm</span></li>
+          <li><span lang="sv">Alla kulisser och ljud</span><span lang="en">Every backdrop and sound</span></li>
+          <li><span lang="sv">Inspelning och uppspelning</span><span lang="en">Recording and playback</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3><span lang="sv">Med köpet Teatern</span><span lang="en">With The Theater purchase</span></h3>
+        <ul>
+          <li><span lang="sv">Dockverkstan</span><span lang="en">The puppet workshop</span></li>
+          <li><span lang="sv">Övriga figurer</span><span lang="en">The other characters</span></li>
+          <li><span lang="sv">Alla världar och all rekvisita</span><span lang="en">All the worlds and props</span></li>
+          <li><span lang="sv">Måla en egen kuliss</span><span lang="en">Painting your own backdrop</span></li>
+        </ul>
+        <p class="note"><span lang="sv">Ingen prenumeration. Köpet fungerar med familjedelning.</span><span lang="en">No subscription. The purchase works with Family Sharing.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap adults">
+    <div class="section-head">
+      <h2><span lang="sv">För dig som vuxen</span><span lang="en">For grown-ups</span></h2>
+    </div>
+    <dl>
+      <dt><span lang="sv">Inga annonser, ingen prenumeration</span><span lang="en">No ads, no subscription</span></dt>
+      <dd><span lang="sv">Barnet blir aldrig ombett att köpa något. Den enda köpknappen sitter bakom en föräldraspärr med en mattefråga för en vuxen.</span><span lang="en">Your child is never asked to buy anything. The one buy button sits behind a parental gate with a math question for an adult.</span></dd>
+
+      <dt><span lang="sv">Fungerar utan internet</span><span lang="en">Works offline</span></dt>
+      <dd><span lang="sv">Leken fungerar likadant i flygplansläge, hemma och på resan. Bara köpet behöver en uppkoppling.</span><span lang="en">Playing works the same in Airplane Mode, at home or on the road. Only the purchase needs a connection.</span></dd>
+
+      <dt><span lang="sv">Allt stannar på enheten</span><span lang="en">Everything stays on the device</span></dt>
+      <dd><span lang="sv">Inspelningar, röster och bilder laddas aldrig upp. Appen har inga tredjepartsbibliotek och ingen spårning mellan appar. Den skickar bara anonym användningsstatistik till vår egen server, utan namn och utan något som pekar ut barnet. <a href="../privacy.html#svenska">Läs integritetspolicyn</a>.</span><span lang="en">Recordings, voices and pictures are never uploaded. The app has no third-party code and no tracking across apps. It only sends anonymous usage statistics to our own server, with no names and nothing that identifies the child. <a href="../privacy.html">Read the privacy policy</a>.</span></dd>
+
+      <dt><span lang="sv">Fjorton språk</span><span lang="en">Fourteen languages</span></dt>
+      <dd><span lang="sv">Svenska, engelska, tyska, franska, spanska, italienska, portugisiska, nederländska, polska, danska, norska, finska, japanska och kinesiska.</span><span lang="en">English, Swedish, German, French, Spanish, Italian, Portuguese, Dutch, Polish, Danish, Norwegian, Finnish, Japanese and Chinese.</span></dd>
+
+      <dt><span lang="sv">Fungerar med VoiceOver</span><span lang="en">Works with VoiceOver</span></dt>
+      <dd><span lang="sv">Varje docka läses upp med sitt namn, och ett dubbeltryck öppnar ringen med hyss och miner.</span><span lang="en">Each puppet is announced by name, and a double tap opens its ring of tricks and faces.</span></dd>
+    </dl>
+  </section>
+</main>
+
+<section class="velvet finale">
+  <div class="valance" aria-hidden="true"></div>
+  <h2><span lang="sv">Dockteatern finns i App Store</span><span lang="en">Puppet Theater is on the App Store</span></h2>
+  <div class="get">
+    <a href="https://apps.apple.com/app/id6800863217">
+      <img lang="sv" src="media/badge-sv.svg" alt="Hämta i App Store" width="162" height="54" loading="lazy">
+      <img lang="en" src="media/badge-en.svg" alt="Download on the App Store" width="162" height="54" loading="lazy">
+    </a>
+    <small><span lang="sv">Gratis att ladda ner. iPhone och iPad med iOS 17.6 eller senare.</span><span lang="en">Free to download. iPhone and iPad with iOS 17.6 or later.</span></small>
+  </div>
+  <footer>
+    <p><span lang="sv">Frågor? Skriv till <a href="mailto:m@lazycoding.app">m@lazycoding.app</a> så svarar en människa.</span><span lang="en">Questions? Write to <a href="mailto:m@lazycoding.app">m@lazycoding.app</a> and a person will answer.</span></p>
+    <nav>
+      <a lang="sv" href="../support.html#svenska">Support</a><a lang="en" href="../support.html">Support</a>
+      <a lang="sv" href="../privacy.html#svenska">Integritetspolicy</a><a lang="en" href="../privacy.html">Privacy policy</a>
+      <a href="../"><span lang="sv">Fler Plinka-appar</span><span lang="en">More Plinka apps</span></a>
+    </nav>
+    <p>© 2026 Lazy Coding AB</p>
+  </footer>
+</section>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var TEXT = {
+      sv: { title: "Dockteatern · Plinka – en marionetteater för barn", play: "Spela filmen", pause: "Pausa filmen",
+            video: "Dockor på teaterscenen, på havsbotten, på bondgården och i rymdskeppet" },
+      en: { title: "Puppet Theater · Plinka – a marionette theater for children", play: "Play video", pause: "Pause video",
+            video: "Puppets on the stage, on the seabed, on the farm and in the spaceship" }
+    };
+    var lang = function () { return root.getAttribute("data-ui") === "sv" ? "sv" : "en"; };
+    var buttons = document.querySelectorAll(".langs button");
+    var video = document.querySelector(".stage video");
+    var pp = document.querySelector(".stage .pp");
+    video.controls = false;
+
+    function syncButton() {
+      var playing = !video.paused;
+      pp.setAttribute("data-state", playing ? "playing" : "paused");
+      pp.setAttribute("aria-label", TEXT[lang()][playing ? "pause" : "play"]);
+    }
+    function setLang(l, remember) {
+      root.setAttribute("data-ui", l);
+      root.lang = l;
+      document.title = TEXT[l].title;
+      video.setAttribute("aria-label", TEXT[l].video);
+      buttons.forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.set === l)); });
+      syncButton();
+      if (remember) { try { localStorage.setItem("lang", l); } catch (e) {} }
+    }
+    buttons.forEach(function (b) { b.addEventListener("click", function () { setLang(b.dataset.set, true); }); });
+    setLang(lang(), false);
+
+    // Lamporna runt scenen, medsols från övre vänstra hörnet; de tänds en gång.
+    var stage = document.querySelector(".stage");
+    var across = 17, down = 12, spots = [], i;
+    for (i = 0; i < across; i++) spots.push([i / (across - 1), 0]);
+    for (i = 1; i < down; i++) spots.push([1, i / (down - 1)]);
+    for (i = across - 2; i >= 0; i--) spots.push([i / (across - 1), 1]);
+    for (i = down - 2; i > 0; i--) spots.push([0, i / (down - 1)]);
+    spots.forEach(function (p, n) {
+      var b = document.createElement("i");
+      b.className = "bulb";
+      b.setAttribute("aria-hidden", "true");
+      b.style.cssText = "--x:" + p[0] + ";--y:" + p[1] + ";--n:" + n;
+      stage.appendChild(b);
+    });
+    requestAnimationFrame(function () { requestAnimationFrame(function () { stage.classList.add("lit"); }); });
+
+    // Filmen spelar bara när den syns, och inte alls av sig själv med reducerad rörelse.
+    var wanted = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var visible = true;
+    function update() {
+      if (wanted && visible) { var p = video.play(); if (p) p.catch(syncButton); }
+      else video.pause();
+    }
+    video.addEventListener("play", syncButton);
+    video.addEventListener("pause", syncButton);
+    pp.addEventListener("click", function () { wanted = video.paused; update(); });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (e) { visible = e[0].isIntersecting; update(); }).observe(video);
+    } else update();
+  })();
+</script>
+</body>
+</html>
